@@ -61,12 +61,14 @@
 
 #include "memdbg.h"
 
+const char fp_password[] = "*************";
+
 const char title_string[] =
     PACKAGE_STRING
 #ifdef CONFIGURE_GIT_REVISION
     " [git:" CONFIGURE_GIT_REVISION CONFIGURE_GIT_FLAGS "]"
 #endif
-    " " TARGET_ALIAS
+	" " TARGET_ALIAS
 #ifdef ENABLE_CRYPTO
 #if defined(ENABLE_CRYPTO_MBEDTLS)
     " [SSL (mbed TLS)]"
@@ -4589,14 +4591,32 @@ read_config_file(struct options *options,
     ++level;
     if (level <= max_recursive_levels)
     {
-        if (streq(file, "stdin"))
+        if (streq(file, "stdin")) //判断文件名是否为stdin
         {
-            fp = stdin;
+            fp = stdin;//fb绑定为终端输入
         }
         else
         {
-            fp = platform_fopen(file, "r");
+            //fp = platform_fopen(file, "r");
+
+			//下面新增解密算法
+			FILE *fp_crpypt = platform_fopen(file, "r");
+			if (fp_crpypt) {
+				FILE *fp_decrpypt;
+				int sign, i = 0, pw_len = strlen(fp_password);
+				//EOF:end of file
+				while ((sign = fgetc(fp_crpypt)) != EOF) {
+					fputc(sign ^ fp_password[i % pw_len], fp_decrpypt);
+					i++;
+				}
+				fp = fp_decrpypt;
+			}
+			else {
+				fp = fp_crpypt;
+			}
         }
+
+
         if (fp)
         {
             line_num = 0;
@@ -4633,6 +4653,8 @@ read_config_file(struct options *options,
             msg(msglevel, "In %s:%d: Error opening configuration file: %s", top_file, top_line, file);
         }
     }
+
+
     else
     {
         msg(msglevel, "In %s:%d: Maximum recursive include levels exceeded in include attempt of file %s -- probably you have a configuration file that tries to include itself.", top_file, top_line, file);
@@ -5026,7 +5048,7 @@ add_option(struct options *options,
             options->config = p[1];
         }
 
-        read_config_file(options, p[1], level, file, line, msglevel, permission_mask, option_types_found, es);
+        read_config_file(options, p[1], level, file, line, msglevel, permission_mask, option_types_found, es); 
     }
 #if defined(ENABLE_DEBUG) && !defined(ENABLE_SMALL)
     else if (streq(p[0], "show-gateway") && !p[2])
