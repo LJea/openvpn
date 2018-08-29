@@ -18,7 +18,7 @@ dist_doc_DATA = \
 	management-notes.txt
 
 dist_noinst_DATA = \
-	README.plugins interactive-service-notes.rst
+	README.plugins
 
 if WIN32
 dist_noinst_DATA += openvpn.8
